@@ -1,6 +1,8 @@
 import { Button } from '@/Components/ui/button';
 import { WorryTreeStartResponse } from '@/types/worry-tree';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { usePage } from '@inertiajs/react';
+import { useStream } from '@laravel/stream-react';
 import axios from 'axios';
 import { easeOut, motion } from 'motion/react';
 import { useForm } from 'react-hook-form';
@@ -25,10 +27,18 @@ type WorryTreeStartProps = {
 };
 
 export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
+    const { props } = usePage();
+
     const form = useForm<WorryTreeStartFormSchemaType>({
         resolver: zodResolver(worryTreeStartFormSchema),
         defaultValues: {
             message: '',
+        },
+    });
+
+    const { data, send } = useStream('chat', {
+        headers: {
+            'X-CSRF-TOKEN': props.csrf_token as string,
         },
     });
 
@@ -38,68 +48,78 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
             data: { id: tree },
         } = createTreeResponse;
 
-        const generatorResponse = await axios.post<{
-            response: WorryTreeStartResponse;
-        }>(route('trees.generate', { tree }), { message });
+        // const generatorResponse = await axios.post<{
+        //     response: WorryTreeStartResponse;
+        // }>(route('trees.generate', { tree }), { message });
+        send({ message });
 
-        const {
-            data: { response },
-        } = generatorResponse;
+        // const {
+        //     data: { response },
+        // } = generatorResponse;
 
-        onComplete(response);
+        // onComplete(response);
     };
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <motion.p
-                    className="text-xl font-bold"
-                    initial={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{
-                        duration: 0.5,
-                        delay: 0.3,
-                        ease: easeOut,
-                    }}
+        <div className="rounded-3xl bg-white p-5 shadow-md">
+            <Form {...form}>
+                <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-5"
                 >
-                    What's on your mind?
-                </motion.p>
-                <motion.div
-                    initial={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{
-                        duration: 0.5,
-                        delay: 0.5,
-                        ease: easeOut,
-                    }}
-                >
-                    <FormField
-                        control={form.control}
-                        name="message"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </motion.div>
-                <motion.div
-                    initial={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{
-                        duration: 0.5,
-                        delay: 0.7,
-                        ease: easeOut,
-                    }}
-                >
-                    <Button type="submit" loading={form.formState.isSubmitting}>
-                        Start
-                    </Button>
-                </motion.div>
-            </form>
-        </Form>
+                    <motion.p
+                        className="text-xl font-bold"
+                        initial={{ opacity: 0, translateY: 20 }}
+                        animate={{ opacity: 1, translateY: 0 }}
+                        transition={{
+                            duration: 0.5,
+                            delay: 0.3,
+                            ease: easeOut,
+                        }}
+                    >
+                        What's on your mind?
+                    </motion.p>
+                    <motion.div
+                        initial={{ opacity: 0, translateY: 20 }}
+                        animate={{ opacity: 1, translateY: 0 }}
+                        transition={{
+                            duration: 0.5,
+                            delay: 0.5,
+                            ease: easeOut,
+                        }}
+                    >
+                        <FormField
+                            control={form.control}
+                            name="message"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </motion.div>
+                    <motion.div
+                        initial={{ opacity: 0, translateY: 20 }}
+                        animate={{ opacity: 1, translateY: 0 }}
+                        transition={{
+                            duration: 0.5,
+                            delay: 0.7,
+                            ease: easeOut,
+                        }}
+                    >
+                        <Button
+                            type="submit"
+                            loading={form.formState.isSubmitting}
+                        >
+                            Start
+                        </Button>
+                    </motion.div>
+                </form>
+            </Form>
+            <div>{data}</div>
+        </div>
     );
 }

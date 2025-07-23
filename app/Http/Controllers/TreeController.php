@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Tree;
 use Illuminate\Http\Request;
-use App\Services\ChatGptService;
 use Illuminate\Support\Facades\Auth;
 use App\Constants\Prompts;
+use OpenAI\Laravel\Facades\OpenAI;
+use Generator;
 
 class TreeController extends Controller
 {
@@ -73,19 +74,23 @@ class TreeController extends Controller
         //
     }
 
-    public function generate(Request $request, ChatGptService $chatGpt)
+    public function generate()
     {
-        $messages = [
-            ['role' => 'system', 'content' => Prompts::INITIAL_RESPONSE_PROMPT],
-            ['role' => 'user', 'content' => $request->input('message')],
-        ];
-
-        $response = $chatGpt->generateResponse($messages);
-
-        $decoded_response = json_decode($response);
-
-        return response()->json([
-            'response' => $decoded_response,
-        ]);
+        
+        return response()->stream(function (): Generator {
+            $messages = [
+                // ['role' => 'system', 'content' => Prompts::INITIAL_RESPONSE_PROMPT],
+                ['role' => 'user', 'content' => 'Tell me a short story'],
+            ];
+    
+            $stream = OpenAI::chat()->createStreamed([
+                'model' => 'gpt-4o-mini',
+                'messages' => $messages,
+            ]);
+    
+            foreach ($stream as $response) {
+                yield $response->choices[0];
+            };
+        }); 
     }
 }

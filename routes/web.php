@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TreeController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use OpenAI\Laravel\Facades\OpenAI;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -26,12 +27,32 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/worry-tree', function () {
-    return Inertia::render('WorryTree');
+    return Inertia::render('WorryTree', [
+        'csrf_token' => csrf_token(),
+    ]);
 })->middleware(['auth', 'verified'])->name('worrytree');
 
 Route::middleware('auth')->group(function () {
     Route::post('/trees', [TreeController::class, 'store'])->name('trees.store');
-    Route::post('/trees/{tree}/generate', [TreeController::class, 'generate'])->name('trees.generate');
 });
+
+Route::post('/chat', function() {
+    return response()->stream(function (): Generator {
+        $messages = [
+            // ['role' => 'system', 'content' => Prompts::INITIAL_RESPONSE_PROMPT],
+            ['role' => 'user', 'content' => 'Tell me a short story'],
+        ];
+
+        $stream = OpenAI::chat()->createStreamed([
+            'model' => 'gpt-4o-mini',
+            'messages' => $messages,
+        ]);
+
+        foreach ($stream as $response) {
+            yield $response->choices[0]->delta->content;
+        }
+    });
+});
+
 
 require __DIR__.'/auth.php';
