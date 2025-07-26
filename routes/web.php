@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TreeController;
+use App\Http\Controllers\WorryAnalysisController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use OpenAI\Laravel\Facades\OpenAI;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -36,23 +36,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/trees', [TreeController::class, 'store'])->name('trees.store');
 });
 
-Route::post('/chat', function() {
-    return response()->stream(function (): Generator {
-        $messages = [
-            // ['role' => 'system', 'content' => Prompts::INITIAL_RESPONSE_PROMPT],
-            ['role' => 'user', 'content' => 'Tell me a short story'],
-        ];
-
-        $stream = OpenAI::chat()->createStreamed([
-            'model' => 'gpt-4o-mini',
-            'messages' => $messages,
-        ]);
-
-        foreach ($stream as $response) {
-            yield $response->choices[0]->delta->content;
-        }
-    });
+Route::middleware('auth')->group(function () {
+    Route::post('/worries/validate', [WorryAnalysisController::class, 'validateWorry'])->name('worries.validate');
+    Route::post('/worries/initial-stream', [WorryAnalysisController::class, 'streamInitialResponse'])->name('worries.initial-stream');
+    Route::post('/worries/initial-worries', [WorryAnalysisController::class, 'getInitialWorries'])->name('worries.initial-worries');
 });
 
-
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

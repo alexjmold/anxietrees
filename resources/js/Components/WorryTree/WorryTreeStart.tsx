@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { usePage } from '@inertiajs/react';
 import { useStream } from '@laravel/stream-react';
 import axios from 'axios';
-import { easeOut, motion } from 'motion/react';
+import { AnimatePresence, easeOut, motion } from 'motion/react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import z from 'zod';
 import {
@@ -28,6 +29,7 @@ type WorryTreeStartProps = {
 
 export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
     const { props } = usePage();
+    const [showInvalidMessage, setShowInvalidMessage] = useState(false);
 
     const form = useForm<WorryTreeStartFormSchemaType>({
         resolver: zodResolver(worryTreeStartFormSchema),
@@ -36,28 +38,40 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
         },
     });
 
-    const { data, send } = useStream('chat', {
+    const { data, send } = useStream(route('worries.initial-stream'), {
         headers: {
             'X-CSRF-TOKEN': props.csrf_token as string,
         },
     });
 
     const onSubmit = async ({ message }: WorryTreeStartFormSchemaType) => {
-        const createTreeResponse = await axios.post(route('trees.store'));
-        const {
-            data: { id: tree },
-        } = createTreeResponse;
+        try {
+            setShowInvalidMessage(false);
 
-        // const generatorResponse = await axios.post<{
-        //     response: WorryTreeStartResponse;
-        // }>(route('trees.generate', { tree }), { message });
-        send({ message });
+            const { data: validationData } = await axios.post(
+                route('worries.validate'),
+                {
+                    message,
+                },
+            );
 
-        // const {
-        //     data: { response },
-        // } = generatorResponse;
+            if (!validationData?.valid) {
+                setShowInvalidMessage(true);
+                return;
+            }
 
-        // onComplete(response);
+            send({ message });
+            const { data: worries } = await axios.post(
+                route('worries.initial-worries'),
+                {
+                    message,
+                },
+            );
+
+            console.log(worries);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     return (
@@ -117,6 +131,21 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
                             Start
                         </Button>
                     </motion.div>
+                    <AnimatePresence mode="wait">
+                        {showInvalidMessage && (
+                            <motion.div
+                                initial={{ opacity: 0, translateY: 20 }}
+                                animate={{ opacity: 1, translateY: 0 }}
+                                className="rounded-3xl bg-gray-50 p-4"
+                            >
+                                <p>
+                                    I'm not sure how to help with that right
+                                    now. Is there something else I can help
+                                    with?
+                                </p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </form>
             </Form>
             <div>{data}</div>
