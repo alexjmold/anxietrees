@@ -1,9 +1,9 @@
 import { Button } from '@/Components/ui/button';
+import { INVALID_WORRY_CODE, INVALID_WORRY_MESSAGE } from '@/lib/constants';
 import { WorryTreeStartResponse } from '@/types/worry-tree';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { usePage } from '@inertiajs/react';
 import { useStream } from '@laravel/stream-react';
-import axios from 'axios';
 import { AnimatePresence, easeOut, motion } from 'motion/react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -38,37 +38,21 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
         },
     });
 
-    const { data, send } = useStream(route('worries.initial-stream'), {
+    const { data, send, isFetching } = useStream(route('worries.validate'), {
         headers: {
             'X-CSRF-TOKEN': props.csrf_token as string,
+        },
+        onError: (error) => {
+            if (error?.message === INVALID_WORRY_CODE) {
+                setShowInvalidMessage(true);
+            }
         },
     });
 
     const onSubmit = async ({ message }: WorryTreeStartFormSchemaType) => {
         try {
             setShowInvalidMessage(false);
-
-            const { data: validationData } = await axios.post(
-                route('worries.validate'),
-                {
-                    message,
-                },
-            );
-
-            if (!validationData?.valid) {
-                setShowInvalidMessage(true);
-                return;
-            }
-
             send({ message });
-            const { data: worries } = await axios.post(
-                route('worries.initial-worries'),
-                {
-                    message,
-                },
-            );
-
-            console.log(worries);
         } catch (error) {
             console.error(error);
         }
@@ -124,10 +108,7 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
                             ease: easeOut,
                         }}
                     >
-                        <Button
-                            type="submit"
-                            loading={form.formState.isSubmitting}
-                        >
+                        <Button type="submit" loading={isFetching}>
                             Start
                         </Button>
                     </motion.div>
@@ -138,11 +119,7 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
                                 animate={{ opacity: 1, translateY: 0 }}
                                 className="rounded-3xl bg-gray-50 p-4"
                             >
-                                <p>
-                                    I'm not sure how to help with that right
-                                    now. Is there something else I can help
-                                    with?
-                                </p>
+                                <p>{INVALID_WORRY_MESSAGE}</p>
                             </motion.div>
                         )}
                     </AnimatePresence>

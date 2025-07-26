@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
-use Illuminate\Http\Request;
 use OpenAI\Laravel\Facades\OpenAI;
 
 class AIResponseController extends Controller
@@ -40,7 +38,15 @@ class AIResponseController extends Controller
         $parsedResult = json_decode($result, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
+            if ($raw) {
+                return ['error' => 'Invalid JSON response from AI'];
+            }
+
             return response()->json(['error' => 'Invalid JSON response from AI'], 500);
+        }
+
+        if ($raw) {
+            return $parsedResult;
         }
 
         return response()->json($parsedResult);
