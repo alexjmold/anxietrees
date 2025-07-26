@@ -21,7 +21,7 @@ class WorryAnalysisController extends Controller
 
         $response = AIResponseController::jsonResponse($messages, true);
 
-        if (!$response || isset($response['error'])) {
+        if (!$response || isset($response['error']) || !isset($response['valid']) || !isset($response['furtherInformation'])) {
             $errorMessage = $response['error'] ?? 'Something went wrong when validating this worry.';
             return response()->json(['error' => $errorMessage], 500);
         }
@@ -32,15 +32,21 @@ class WorryAnalysisController extends Controller
             return response(ResponseCodes::INVALID_WORRY_CODE, 422);
         }
 
-        return $this->streamInitialResponse($validated['message']);
+        return $this->streamInitialResponse($validated['message'], $response['furtherInformation']);
     }
 
     /**
      * The first streamed response when a new worry is created
      */
-    public function streamInitialResponse(string $userMessage)
+    public function streamInitialResponse(string $userMessage, bool $furtherInformation)
     {
-        $messages = MessageBuilderService::buildChatMessages(Prompts::INITIAL_STREAM_PROMPT, $userMessage);
+        $systemPrompt = Prompts::INITIAL_STREAM_PROMPT;
+
+        if ($furtherInformation) {
+            $systemPrompt .= Prompts::INITIAL_STREAM_PROMPT_FURTHER_INFORMATION;
+        }
+
+        $messages = MessageBuilderService::buildChatMessages($systemPrompt, $userMessage);
 
         return AIResponseController::streamResponse($messages);
     }
