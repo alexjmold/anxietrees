@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TreeController;
+use App\Http\Controllers\WorryAnalysisController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -26,12 +27,19 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/worry-tree', function () {
-    return Inertia::render('WorryTree');
+    return Inertia::render('WorryTree', [
+        'csrf_token' => csrf_token(),
+    ]);
 })->middleware(['auth', 'verified'])->name('worrytree');
 
 Route::middleware('auth')->group(function () {
-    Route::post('/trees', [TreeController::class, 'store'])->name('trees.store');
-    Route::post('/trees/{tree}/generate', [TreeController::class, 'generate'])->name('trees.generate');
+    Route::post('/worries/validate', [WorryAnalysisController::class, 'validateWorry'])->name('worries.validate');
+    Route::post('/worries/initial-stream', [WorryAnalysisController::class, 'streamInitialResponse'])->name('worries.initial-stream');
+    Route::post('/worries/initial-worries', [WorryAnalysisController::class, 'getInitialWorries'])->name('worries.initial-worries');
 });
 
-require __DIR__.'/auth.php';
+Route::middleware('auth')->group(function () {
+    Route::post('/trees/create', [TreeController::class, 'store'])->name('trees.create');
+});
+
+require __DIR__ . '/auth.php';

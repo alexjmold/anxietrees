@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('tree_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('content');
+            $table->string('type');
             $table->enum('role', ['user', 'assistant']);
             $table->timestamps();
         });

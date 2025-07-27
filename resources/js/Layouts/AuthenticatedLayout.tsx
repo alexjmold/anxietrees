@@ -8,6 +8,7 @@ import {
 import { Link } from '@inertiajs/react';
 import { LogOutIcon, UserIcon } from 'lucide-react';
 import { PropsWithChildren } from 'react';
+import { Toaster } from 'sonner';
 
 export default function Authenticated({ children }: PropsWithChildren) {
     return (
@@ -73,6 +74,7 @@ export default function Authenticated({ children }: PropsWithChildren) {
                 </nav>
             </div>
             <main>{children}</main>
+            <Toaster />
         </div>
     );
 }

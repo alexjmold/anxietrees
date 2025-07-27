@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tree;
+use App\Models\Message;
 use Illuminate\Http\Request;
-use App\Services\ChatGptService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use App\Constants\Prompts;
 
 class TreeController extends Controller
 {
@@ -29,16 +29,39 @@ class TreeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store()
+    public function store(Request $request)
     {
-        $tree = Tree::create([
-            'user_id' => Auth::id(), // assumes user is logged in
+        $validated = $request->validate([
+            'messages' => 'sometimes|array|min:1',
+            'messages.*.content' => 'required|string|max:1000',
+            'messages.*.type' => 'required|string',
+            'messages.*.role' => 'required|string|in:assistant,user',
         ]);
-    
-        return response()->json([
-            'id' => $tree->id,
-            'tree' => $tree,
-        ]);
+
+        return DB::transaction(function () use ($validated) {
+            $tree = Tree::create([
+                'user_id' => Auth::id(),
+            ]);
+
+            if (isset($validated['messages'])) {
+                $messagesData = collect($validated['messages'])->map(function ($message) use ($tree) {
+                    return [
+                        'tree_id' => $tree->id,
+                        'user_id' => Auth::id(),
+                        'content' => $message['content'],
+                        'role' => $message['role'],
+                        'type' => $message['type'],
+                    ];
+                })->toArray();
+
+                Message::insert($messagesData);
+            }
+
+            return response()->json([
+                'id' => $tree->id,
+                'tree' => $tree->load('messages')
+            ]);
+        });
     }
 
     /**
@@ -71,21 +94,5 @@ class TreeController extends Controller
     public function destroy(Tree $tree)
     {
         //
-    }
-
-    public function generate(Request $request, ChatGptService $chatGpt)
-    {
-        $messages = [
-            ['role' => 'system', 'content' => Prompts::INITIAL_RESPONSE_PROMPT],
-            ['role' => 'user', 'content' => $request->input('message')],
-        ];
-
-        $response = $chatGpt->generateResponse($messages);
-
-        $decoded_response = json_decode($response);
-
-        return response()->json([
-            'response' => $decoded_response,
-        ]);
     }
 }
