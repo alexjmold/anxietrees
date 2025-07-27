@@ -51,6 +51,8 @@ class TreeController extends Controller
                         'content' => $message['content'],
                         'role' => $message['role'],
                         'type' => $message['type'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ];
                 })->toArray();
 
