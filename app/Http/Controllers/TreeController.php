@@ -5,9 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Tree;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Constants\Prompts;
-use OpenAI\Laravel\Facades\OpenAI;
-use Generator;
 
 class TreeController extends Controller
 {
@@ -30,12 +27,23 @@ class TreeController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store()
+    public function store(Request $request)
     {
         $tree = Tree::create([
-            'user_id' => Auth::id(), // assumes user is logged in
+            'user_id' => Auth::id(),
         ]);
-    
+
+        if ($request->has('messages')) {
+            foreach ($request->input('messages') as $messageData) {
+                $tree->messages()->create([
+                    'user_id' => Auth::id(),
+                    'content' => $messageData['content'],
+                    'type' => $messageData['type'],
+                    'role' => $messageData['role'],
+                ]);
+            }
+        }
+
         return response()->json([
             'id' => $tree->id,
             'tree' => $tree,
@@ -72,25 +80,5 @@ class TreeController extends Controller
     public function destroy(Tree $tree)
     {
         //
-    }
-
-    public function generate()
-    {
-        
-        return response()->stream(function (): Generator {
-            $messages = [
-                // ['role' => 'system', 'content' => Prompts::INITIAL_RESPONSE_PROMPT],
-                ['role' => 'user', 'content' => 'Tell me a short story'],
-            ];
-    
-            $stream = OpenAI::chat()->createStreamed([
-                'model' => 'gpt-4o-mini',
-                'messages' => $messages,
-            ]);
-    
-            foreach ($stream as $response) {
-                yield $response->choices[0];
-            };
-        }); 
     }
 }

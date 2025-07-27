@@ -33,13 +33,13 @@ Route::get('/worry-tree', function () {
 })->middleware(['auth', 'verified'])->name('worrytree');
 
 Route::middleware('auth')->group(function () {
-    Route::post('/trees', [TreeController::class, 'store'])->name('trees.store');
-});
-
-Route::middleware('auth')->group(function () {
     Route::post('/worries/validate', [WorryAnalysisController::class, 'validateWorry'])->name('worries.validate');
     Route::post('/worries/initial-stream', [WorryAnalysisController::class, 'streamInitialResponse'])->name('worries.initial-stream');
     Route::post('/worries/initial-worries', [WorryAnalysisController::class, 'getInitialWorries'])->name('worries.initial-worries');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('/trees/create', [TreeController::class, 'store'])->name('trees.create');
 });
 
 require __DIR__ . '/auth.php';

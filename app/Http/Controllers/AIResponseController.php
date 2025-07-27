@@ -9,7 +9,7 @@ class AIResponseController extends Controller
     /**
      * Generic streaming function
      */
-    public static function streamResponse(array $messages)
+    public static function streamResponse(array $messages, array $headers = [])
     {
         return response()->stream(function () use ($messages) {
             $stream = OpenAI::chat()->createStreamed([
@@ -20,7 +20,7 @@ class AIResponseController extends Controller
             foreach ($stream as $response) {
                 yield $response->choices[0]->delta->content;
             }
-        });
+        }, 200, $headers);
     }
 
     /**

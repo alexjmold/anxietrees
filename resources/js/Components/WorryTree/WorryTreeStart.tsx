@@ -33,7 +33,8 @@ type WorryTreeStartProps = {
 export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
     const { props } = usePage();
     const [showInvalidMessage, setShowInvalidMessage] = useState(false);
-    const [step, setStep] = useState(0);
+    const [furtherInformation, setFurtherInformation] = useState(false);
+    const [isCompleted, setIsCompleted] = useState(false);
 
     const form = useForm<WorryTreeStartFormSchemaType>({
         resolver: zodResolver(worryTreeStartFormSchema),
@@ -41,6 +42,11 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
             message: '',
         },
     });
+
+    const complete = (data: WorryTreeStartResponse) => {
+        onComplete(data);
+        setIsCompleted(true);
+    };
 
     const { data, send, isFetching } = useStream(route('worries.validate'), {
         headers: {
@@ -57,8 +63,17 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
                 dismissible: true,
             });
         },
+        onResponse: (response) => {
+            const furtherInformationHeader =
+                response.headers.get('X-Further-Information') === 'true';
+            setFurtherInformation(furtherInformationHeader);
+        },
         onFinish: () => {
-            setStep(1);
+            complete({
+                message: form.getValues('message'),
+                response: data,
+                furtherInformation,
+            });
         },
     });
 
@@ -77,10 +92,30 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
     return (
         <div>
             <AnimatePresence mode="wait">
-                {step === 0 ? (
+                {isCompleted ? (
                     <motion.div
+                        key="completed"
                         initial={{ opacity: 0, translateY: 20 }}
+                        exit={{ opacity: 0, translateY: -20 }}
                         animate={{ opacity: 1, translateY: 0 }}
+                        transition={{
+                            duration: 0.5,
+                            ease: easeOut,
+                        }}
+                        className="mb-5 rounded-3xl bg-white p-5 text-left shadow-md"
+                    >
+                        <p>{form.getValues('message')}</p>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="form"
+                        initial={{ opacity: 0, translateY: 20 }}
+                        exit={{ opacity: 0, translateY: -20 }}
+                        animate={{ opacity: 1, translateY: 0 }}
+                        transition={{
+                            duration: 0.5,
+                            ease: easeOut,
+                        }}
                         className="mb-5 rounded-3xl bg-white p-5 shadow-md"
                     >
                         <Form {...form}>
@@ -136,7 +171,11 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
                                         ease: easeOut,
                                     }}
                                 >
-                                    <Button type="submit" loading={isFetching}>
+                                    <Button
+                                        type="submit"
+                                        loading={isFetching}
+                                        disabled={isCompleted}
+                                    >
                                         Start
                                     </Button>
                                 </motion.div>
@@ -159,15 +198,6 @@ export function WorryTreeStart({ onComplete }: WorryTreeStartProps) {
                                 </AnimatePresence>
                             </form>
                         </Form>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        initial={{ opacity: 0, translateY: 20 }}
-                        exit={{ opacity: 0, translateY: -20 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        className="mb-5 rounded-2xl bg-gray-50 p-4"
-                    >
-                        <p className="text-left">{form.getValues('message')}</p>
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -1,10 +1,7 @@
-interface WorryTreeFocusItem {
-    worryDescription: string;
-    worrySubject: string;
-}
+export type WorryTreeStatus = 'start' | 'furtherInformation';
 
 export interface WorryTreeStartResponse {
-    isValid: boolean;
+    message: string;
     response: string;
-    worries: WorryTreeFocusItem[];
+    furtherInformation: boolean;
 }

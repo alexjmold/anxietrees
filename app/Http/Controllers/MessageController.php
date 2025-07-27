@@ -3,63 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\Tree;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, Tree $tree)
     {
-        //
-    }
+        $validated = $request->validate([
+            'content' => 'required|string',
+            'type' => 'required|string',
+            'role' => 'required|string|in:assistant,user',
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Message $message)
-    {
-        //
-    }
+        if ($tree->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized');
+        }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Message $message)
-    {
-        //
-    }
+        $message = Message::createForTree($tree, $validated);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Message $message)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Message $message)
-    {
-        //
+        return response()->json($message);
     }
 }

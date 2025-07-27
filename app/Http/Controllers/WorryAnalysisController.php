@@ -48,7 +48,9 @@ class WorryAnalysisController extends Controller
 
         $messages = MessageBuilderService::buildChatMessages($systemPrompt, $userMessage);
 
-        return AIResponseController::streamResponse($messages);
+        $headers = ['X-Further-Information' => $furtherInformation ? 'true' : 'false'];
+
+        return AIResponseController::streamResponse($messages, $headers);
     }
 
     /**
