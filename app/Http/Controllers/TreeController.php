@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tree;
+use App\Models\Message;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class TreeController extends Controller
@@ -29,25 +31,37 @@ class TreeController extends Controller
      */
     public function store(Request $request)
     {
-        $tree = Tree::create([
-            'user_id' => Auth::id(),
+        $validated = $request->validate([
+            'messages' => 'sometimes|array|min:1',
+            'messages.*.content' => 'required|string|max:1000',
+            'messages.*.type' => 'required|string',
+            'messages.*.role' => 'required|string|in:assistant,user',
         ]);
 
-        if ($request->has('messages')) {
-            foreach ($request->input('messages') as $messageData) {
-                $tree->messages()->create([
-                    'user_id' => Auth::id(),
-                    'content' => $messageData['content'],
-                    'type' => $messageData['type'],
-                    'role' => $messageData['role'],
-                ]);
+        return DB::transaction(function () use ($validated) {
+            $tree = Tree::create([
+                'user_id' => Auth::id(),
+            ]);
+
+            if (isset($validated['messages'])) {
+                $messagesData = collect($validated['messages'])->map(function ($message) use ($tree) {
+                    return [
+                        'tree_id' => $tree->id,
+                        'user_id' => Auth::id(),
+                        'content' => $message['content'],
+                        'role' => $message['role'],
+                        'type' => $message['type'],
+                    ];
+                })->toArray();
+
+                Message::insert($messagesData);
             }
-        }
 
-        return response()->json([
-            'id' => $tree->id,
-            'tree' => $tree,
-        ]);
+            return response()->json([
+                'id' => $tree->id,
+                'tree' => $tree->load('messages')
+            ]);
+        });
     }
 
     /**
